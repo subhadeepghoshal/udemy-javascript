@@ -1,69 +1,30 @@
-import React, { Component, Fragment } from "react";
+import React, { useState, Fragment } from "react";
+import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 import "./App.css";
 import Navbar from "./components/layout/Navbar";
 import Users from "./components/users/Users";
 import User from "./components/users/User";
-import axios from "axios";
-import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 import Search from "./components/users/Search";
 import Alert from "./components/layout/Alert";
 import { about } from "./pages/about";
-class App extends Component {
-  state = {
-    users: [],
-    user: {},
-    repos: [],
-    loading: false,
-    alert: null,
-  };
+import GitHubState from "./context/github/GitHubState";
 
-  searchUsers = async (text) => {
-    const githubSearchURI = `https://api.github.com/search/users?q=${text}&client_id=${process.env.REACT_APP_GITHUB_CLIENT_ID}&client_secret=${process.env.REACT_APP_GITHUB_CLIENT_SECRET}`;
-
-    console.log(githubSearchURI);
-
-    this.setState({ loading: true });
-    const res = await axios.get(githubSearchURI);
-    this.setState({ users: res.data.items, loading: false });
-  };
-
-  getUser = async (username) => {
-    const githubGetURI = `https://api.github.com/users/${username}?client_id=${process.env.REACT_APP_GITHUB_CLIENT_ID}&client_secret=${process.env.REACT_APP_GITHUB_CLIENT_SECRET}`;
-
-    this.setState({ loading: true });
-    const res = await axios.get(githubGetURI);
-    this.setState({ user: res.data, loading: false });
-  };
-
-  getUserRepos = async (username) => {
-    const githubReposURI = `https://api.github.com/users/${username}/repos?per_page=5&sort=created:asc&client_id=${process.env.REACT_APP_GITHUB_CLIENT_ID}&client_secret=${process.env.REACT_APP_GITHUB_CLIENT_SECRET}`;
-
-    console.log(githubReposURI);
-
-    this.setState({ loading: true });
-    const res = await axios.get(githubReposURI);
-    this.setState({ repos: res.data, loading: false });
-  };
-
-  clearUsers = () => {
-    this.setState({ users: [], loading: false });
-  };
-
-  setAlert = (msg, type) => {
-    this.setState({ alert: { msg, type } });
+const App = () => {
+  const [alert, setAlert] = useState(null);
+  const showAlert = (msg, type) => {
+    setAlert({ msg, type });
     setTimeout(() => {
-      this.setState({ alert: null });
+      setAlert(null);
     }, 3000);
   };
 
-  render() {
-    const { users, user, repos, loading } = this.state;
-    return (
+  return (
+    <GitHubState>
       <Router>
         <div className="App">
           <Navbar />
           <div className="container">
-            {this.state.alert !== "" ? <Alert alert={this.state.alert} /> : ""}
+            {alert !== "" ? <Alert alert={alert} /> : ""}
             <Switch>
               <Route
                 exact
@@ -71,12 +32,9 @@ class App extends Component {
                 render={(props) => (
                   <Fragment>
                     <Search
-                      setAlert={this.setAlert}
-                      searchUsers={this.searchUsers}
-                      clearUsers={this.clearUsers}
-                      userExists={users.length > 0 ? true : false}
+                      setAlert={showAlert}
                     />
-                    <Users users={users} loading={loading} />{" "}
+                    <Users />{" "}
                   </Fragment>
                 )}
               />
@@ -84,22 +42,13 @@ class App extends Component {
               <Route
                 exact
                 path="/user/:login"
-                render={(props) => (
-                  <User
-                    {...props}
-                    getUser={this.getUser}
-                    getUserRepos={this.getUserRepos}
-                    user={user}
-                    repos={repos}
-                    loading={loading}
-                  />
-                )}
+                component={User}
               />
             </Switch>
           </div>
         </div>
       </Router>
-    );
-  }
-}
+    </GitHubState>
+  );
+};
 export default App;
